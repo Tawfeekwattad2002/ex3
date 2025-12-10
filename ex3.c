@@ -1,11 +1,15 @@
+/* Name: Tawfek watted
+   ID: 211438973
+   Assignment: ex3*/
+
 #include <stdio.h>
 
 #ifndef ROWS
-#define ROWS 6
+#define ROWS 4
 #endif
 
 #ifndef COLS
-#define COLS 7
+#define COLS 4
 #endif
 
 #define CONNECT_N 4
@@ -18,34 +22,34 @@
 #define HUMAN 1
 #define COMPUTER 2
 
-int isColumnFull(char[][COLS], int, int, int);
+int isColumnFull(char board[][COLS], int col, int rows, int cols);
 
-int isBoardFull(char[][COLS], int, int);
+int isBoardFull(char board[][COLS], int rows, int cols);
 
-int isInBounds(int, int, int, int);
+int isInBounds(int r, int c, int rows, int cols);
 
 /* Return index of row where token will land, or -1 if column full */
-int getFreeRow(char[][COLS], int, int, int);
+int getFreeRow(char board[][COLS], int col, int rows, int cols);
 
 /* Place token in column (0-based). Return row index or -1 if illegal */
-int makeMove(char[][COLS], int, int, int, char);
+int makeMove(char board[][COLS], int col, int rows, int cols, char token);
 
-int checkVictory(char[][COLS], int, int, int, int, char);
+int checkVictory(char board[][COLS], int rows, int cols, int lastRow, int lastCol, char token);
 
 /* Human player: asks repeatedly until a valid non-full column is chosen (0-based) */
-int humanChoose(char[][COLS], int, int);
+int humanChoose(char board[][COLS], int cols, int rows);
 
 /* Computer*/
-int computerChoose(char[][COLS], int, int, char, char);
+int computerChoose(char board[][COLS], int cols, int rows, char myToken, char oppToken);
 
-void runConnectFour(char[][COLS], int, int, int, int);
+void runConnectFour(char board[][COLS], int rows, int cols, int p1Type, int p2Type);
 
-void initBoard(char[][COLS], int, int);
+void initBoard(char board[][COLS], int rows, int cols);
 
-void printBoard(char[][COLS], int, int);
 
-int getPlayerType(int);
+void printBoard(char board[][COLS], int rows, int cols);
 
+int getPlayerType(int playerNumber);
 
 int main() {
     char board[ROWS][COLS];
@@ -57,6 +61,290 @@ int main() {
     runConnectFour(board, ROWS, COLS, p1Type, p2Type);
     return 0;
 }
+
+int isColumnFull(char board[][COLS], int col, int rows, int cols){
+    if (rows<=0 || cols<=0) {
+        return 1;
+    }
+    if (col<0 || col>+cols) {
+        return 1;
+    }
+    return board[0][col]!= EMPTY;
+}
+
+int isBoardFull(char board[][COLS], int rows, int cols){
+    for (int c = 0; c < cols; c++){
+        if(!isColumnFull(board, c, rows, cols)){
+        return 0;
+        }
+     }
+  return 1;
+}
+
+int isInBounds(int r, int c, int rows, int cols){
+     return r>=0 && r<rows && c>=0 && c<cols;
+}
+
+int getFreeRow(char board[][COLS], int col, int rows, int cols){
+    if (col<0 || col>=cols) {
+        return -1;
+    }
+    for (int r= rows-1 ; r >= 0 ; r--){
+         if(board[r][col] == EMPTY){
+               return r;
+           }
+      }
+   return -1;
+}
+
+int makeMove(char board[][COLS], int col, int rows, int cols, char token){
+     if(col<0 || col>=cols || isColumnFull(board, col, rows, cols)){
+     return -1;}
+
+     int row= getFreeRow(board, col, rows, cols);
+     board[row][col]=token;
+     return row;
+}
+
+int checkVictory(char board[][COLS], int rows, int cols, int lastRow, int lastCol, char token){
+     int directions[4][2]={{0,1},{1,0},{1,1},{1,-1}};
+     for(int d=0;d<4;d++){
+      int dr=directions[d][0];
+      int dc=directions[d][1];
+      int count=1;
+      for(int i=1;i<CONNECT_N;i++){
+            int r=lastRow-dr*i;
+            int c=lastCol-dc*i;
+              if(isInBounds(r, c, rows, cols) && board[r][c]==token){
+       count++;
+       }
+       else break;
+}
+         for(int i=1;i<CONNECT_N;i++){
+             int r=lastRow+dr*i;
+             int c=lastCol+dc*i;
+             if(isInBounds(r, c, rows, cols) && board[r][c]==token){
+                 count++;
+             }
+             else break;
+         }
+       if(count>=CONNECT_N){
+        return 1;
+         }
+   }
+     return 0;
+}
+
+int humanChoose(char board[][COLS], int cols, int rows){
+    int col;
+    while(1){
+            printf("Enter column(1-%d): ",cols);
+            int n = scanf("%d",&col);
+       if(n!=1){
+            printf("Invalid input. Try again.\n");
+            while(getchar()!='\n');
+            continue;
+          }
+     col--;
+       if(col<0 || col>=cols){
+        printf ("Invalid column. Choose between 1 and %d.\n",cols);
+        continue;
+           }
+       if(isColumnFull(board, col, rows, cols)){
+        printf("Column %d is full. Choose another column.\n",col+1);
+        continue;
+           }
+       return col;
+   }
+}
+int computerChoose(char board[][COLS], int cols, int rows, char myToken, char oppToken) {
+    // The winning move (first priority)
+    for(int c=0;c<cols;c++){
+        if(!isColumnFull(board, c, rows, cols)){
+            char tempBoard[ROWS][COLS];
+            for(int r=0;r<rows;r++){
+                for(int col=0;col<cols;col++){
+                    tempBoard[r][col]=board[r][col];
+                }
+            }
+            int row= makeMove(tempBoard, c, rows, cols, myToken);
+            if(row!=-1 && checkVictory(tempBoard, rows, cols, row, c, myToken)){
+                return c;
+            }
+        }
+    }
+    // Blocking opponent (second priority)
+    for(int c=0;c<cols;c++){
+        if(!isColumnFull(board, c, rows, cols)){
+            char tempBoard[ROWS][COLS];
+            for(int r=0;r<rows;r++){
+                for(int col=0;col<cols;col++){
+                    tempBoard[r][col]=board[r][col];
+                }
+            }
+            int row=makeMove(tempBoard, c, rows, cols, oppToken);
+            if(row!=-1 && checkVictory(tempBoard, rows, cols, row, c, oppToken)){
+                return c;
+            }
+        }
+    }
+
+    // Creating sequence of three (third priority)
+    for(int c=0;c<cols;c++){
+        if(!isColumnFull(board, c, rows, cols)){
+            char tempBoard[ROWS][COLS];
+            for(int r=0;r<rows;r++) {
+                for(int col=0;col<cols;col++) {
+                    tempBoard[r][col]=board[r][col];
+                }
+            }
+            int row=makeMove(tempBoard, c, rows, cols, myToken);
+            if (row!=-1) {
+                //checking if this creating a sequence of 3
+                int directions[4][2]={{0,1},{1,0},{1,1},{1,-1}};
+                for(int d=0;d<4;d++) {
+                    int dr=directions[d][0];
+                    int dc=directions[d][1];
+                    int count=1;
+
+                    //negative direction
+                    for(int i=1;i<CONNECT_N;i++) {
+                        int rr=row-dr*i;
+                        int cc=c-dc*i;
+                        if(isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==myToken) {
+                            count++;
+                        }
+                        else break;
+                    }
+                    // positive direction
+                    for (int i=1;i<CONNECT_N;i++) {
+                        int rr=row+dr*i;
+                        int cc=c+dc*i;
+                        if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==myToken) {
+                            count++;
+                        }
+                        else break;
+                    }
+                    if (count==3) {
+                        return c;
+                    }
+                }
+            }
+        }
+    }
+
+    // Blocking the opponent’s sequence of three.(fourth priority)
+    for(int c=0;c<cols;c++){
+        if(!isColumnFull(board, c, rows, cols)){
+            char tempBoard[ROWS][COLS];
+            for(int r=0;r<rows;r++) {
+                for(int col=0;col<cols;col++) {
+                    tempBoard[r][col]=board[r][col];
+                }
+            }
+            int row=makeMove(tempBoard, c, rows, cols, oppToken);
+            if (row!=-1) {
+                //checking if this creating a sequence of 3
+                int directions[4][2]={{0,1},{1,0},{1,1},{1,-1}};
+                for(int d=0;d<4;d++) {
+                    int dr=directions[d][0];
+                    int dc=directions[d][1];
+                    int count=1;
+
+                    //negative direction
+                    for(int i=1;i<CONNECT_N;i++) {
+                        int rr=row-dr*i;
+                        int cc=c-dc*i;
+                        if(isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
+                            count++;
+                        }
+                        else break;
+                    }
+                    // positive direction
+                    for (int i=1;i<CONNECT_N;i++) {
+                        int rr=row+dr*i;
+                        int cc=c+dc*i;
+                        if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
+                            count++;
+                        }
+                        else break;
+                    }
+                    if (count==3) {
+                        return c;
+                    }
+                }
+            }
+        }
+    }
+    int center=(cols-1)/2;
+  // Try center first
+    if (!isColumnFull(board,center,rows,cols)) {
+        return center;
+    }
+    // alternate right to left and to start cloest to center
+    for (int dist=1;dist<=center;dist++) {
+        // Try right side
+        int rightCol=center+dist;
+        if (rightCol<cols && !isColumnFull(board,rightCol,rows,cols)) {
+            return rightCol;
+        }
+        // Try left side first
+        int leftCol=center-dist;
+        if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
+            return leftCol;
+        }
+        for (int c=0;c<cols;c++) {
+            if (!isColumnFull(board,c,rows,cols)) {
+                return c;
+            }
+        }
+
+    }
+    return 0;
+ }
+
+void runConnectFour(char board[][COLS], int rows, int cols, int p1Type, int p2Type){
+    char tokens[2]={TOKEN_P1,TOKEN_P2};
+    int types[2]={p1Type,p2Type};
+    int currentPlayer=0;
+
+    while(1){
+        int playerNum=currentPlayer+1;
+        char token=tokens[currentPlayer];
+
+        printf("Player %d (%c)turn.\n",playerNum,token);
+
+        int col;
+        if (types[currentPlayer]==HUMAN) {
+            col=humanChoose(board,cols,rows);
+        } else{
+            col=computerChoose(board,cols,rows,tokens[currentPlayer],tokens[1-currentPlayer]);
+            printf("Computer chose column %d\n",col+1);
+        }
+
+        int row=makeMove(board,col,rows,cols,token);
+        printBoard(board,rows,cols);
+
+        if (checkVictory(board,rows,cols,row,col,token)) {
+            printf("Player %d (%c) wins!\n",playerNum,token);
+            break;
+        }
+
+        if (isBoardFull(board,rows,cols)) {
+            printf("Board full and no winner. It's a tie!\n");
+            break;
+        }
+
+        currentPlayer=1-currentPlayer;
+    }
+}
+
+void initBoard(char board[][COLS],int rows,int cols){
+    for (int r=0;r<rows;r++)
+        for (int c=0;c<cols;c++)
+            board[r][c]=EMPTY;
+}
+
 
 void printBoard(char board[][COLS], int rows, int cols) {
     printf("\n");
