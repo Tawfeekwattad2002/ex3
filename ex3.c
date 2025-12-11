@@ -238,7 +238,7 @@ int computerChoose(char board[][COLS], int cols, int rows, char myToken, char op
     int center = (cols-1)/2;
 
     if (cols%2==0) {
-        /* EVEN number of columns: check center, then prefer RIGHT then LEFT */
+        // Even number of columns: check center, then prefer RIGHT then LEFT
         for (int dist=0;dist<cols; dist++) {
             /* right side first (except dist == 0) */
             int rightCol=center+dist;
@@ -276,7 +276,7 @@ int computerChoose(char board[][COLS], int cols, int rows, char myToken, char op
                 }
             }
 
-            /* then left side */
+            // then left side
             int leftCol=center-dist;
             if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
                 char tempBoard[ROWS][COLS];
@@ -313,7 +313,7 @@ int computerChoose(char board[][COLS], int cols, int rows, char myToken, char op
             }
         }
     } else {
-        /* ODD number of columns (like 7): original behavior, LEFT then RIGHT */
+        // Odd number of columns : LEFT then RIGHT
         for (int dist=0; dist<cols; dist++) {
             int leftCol=center-dist;
             if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
@@ -387,14 +387,14 @@ int computerChoose(char board[][COLS], int cols, int rows, char myToken, char op
         }
     }
 
-    /* 5) Fallback: choose column by center preference */
+    // 5) Fallback: choosing column by center preference
     center=(cols-1)/2;
     if (!isColumnFull(board, center, rows, cols)) {
         return center;
     }
 
     if (cols%2==0) {
-        /* EVEN: prefer RIGHT then LEFT around center */
+        // Even , prefer RIGHT then LEFT around center
         for (int dist=1;dist<cols;dist++) {
             int rightCol=center+dist;
             if (rightCol<cols && !isColumnFull(board,rightCol,rows,cols)) {
@@ -406,7 +406,7 @@ int computerChoose(char board[][COLS], int cols, int rows, char myToken, char op
             }
         }
     } else {
-        /* ODD: original LEFT then RIGHT */
+        // Odd , original LEFT then RIGHT
         for (int dist=1;dist<cols;dist++) {
             int leftCol=center-dist;
             if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
@@ -419,7 +419,7 @@ int computerChoose(char board[][COLS], int cols, int rows, char myToken, char op
         }
     }
 
-    /* Should not really get here if there is any legal move */
+    // it Should not really get here if there is any legal move
     return 0;
 }
 
