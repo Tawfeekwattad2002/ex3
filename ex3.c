@@ -138,10 +138,10 @@ int checkVictory(char board[][COLS], int rows, int cols, int lastRow, int lastCo
 int humanChoose(char board[][COLS], int cols, int rows){
     int col;
     while(1){
-            printf("Enter column(1-%d): ",cols);
+            printf("Enter column (1-%d): ",cols);
             int n = scanf("%d",&col);
        if(n!=1){
-            printf("Invalid input. Try again.\n");
+            printf("Invalid input. Enter a number.\n");
             while(getchar()!='\n');
             continue;
           }
@@ -157,269 +157,197 @@ int humanChoose(char board[][COLS], int cols, int rows){
        return col;
    }
 }
-int computerChoose(char board[][COLS], int cols, int rows, char myToken, char oppToken) {
-    int directions[4][2] = { {0,1}, {1,0}, {1,1}, {1,-1} };
-    // The winning move (first priority)
+int computerChoose(char board[][COLS],int cols,int rows,char myToken,char oppToken){
+    int directions[4][2]={{0,1},{1,0},{1,1}, {1,-1}};
+    // building order
+    int order[COLS];
     for(int c=0;c<cols;c++){
-        if(!isColumnFull(board, c, rows, cols)){
-            char tempBoard[ROWS][COLS];
-            for(int r=0;r<rows;r++){
-                for(int col=0;col<cols;col++){
-                    tempBoard[r][col]=board[r][col];
-                }
-            }
-            int row= makeMove(tempBoard, c, rows, cols, myToken);
-            if(row!=-1 && checkVictory(tempBoard, rows, cols, row, c, myToken)){
-                return c;
+        order[c]=c;
+    }
+int center2=cols+1;  // we use doubled distances: dist2 = |2*(col+1) - (cols+1)|
+    for(int i=0;i<cols-1;i++){
+        int best=i;
+        for (int j=i+1;j<cols;j++){
+            int c1=order[best];
+            int c2=order[j];
+
+            int d1=2*(c1+1)-center2;
+            if(d1<0)d1=-d1;
+            int d2=2*(c2+1)-center2;
+            if(d2<0)d2=-d2;
+
+            // prefering smaller distance; if tie, smaller index (left)
+            if(d2<d1 || (d2==d1 && c2<c1)){
+                best=j;
             }
         }
-    }
-    // Blocking opponent (second priority)
-    for(int c=0;c<cols;c++){
-        if(!isColumnFull(board, c, rows, cols)){
-            char tempBoard[ROWS][COLS];
-            for(int r=0;r<rows;r++){
-                for(int col=0;col<cols;col++){
-                    tempBoard[r][col]=board[r][col];
-                }
-            }
-            int row=makeMove(tempBoard, c, rows, cols, oppToken);
-            if(row!=-1 && checkVictory(tempBoard, rows, cols, row, c, oppToken)){
-                return c;
-            }
+        if(best!=i){
+            int tmp=order[i];
+            order[i]=order[best];
+            order[best]=tmp;
         }
     }
+    //1) Winning move for myToken
+    for(int idx=0;idx<cols;idx++) {
+        int col=order[idx];
+        if(isColumnFull(board,col,rows,cols)) {
+            continue;
+        }
 
-    // Creating sequence of three (third priority)
-    for(int c=0;c<cols;c++){
-        if(!isColumnFull(board, c, rows, cols)){
-            char tempBoard[ROWS][COLS];
-            for(int r=0;r<rows;r++) {
-                for(int col=0;col<cols;col++) {
-                    tempBoard[r][col]=board[r][col];
-                }
+        char tempBoard[ROWS][COLS];
+        for(int r=0;r<rows;r++) {
+            for(int cc=0;cc<cols;cc++) {
+                tempBoard[r][cc]=board[r][cc];
             }
-            int row=makeMove(tempBoard, c, rows, cols, myToken);
-            if (row!=-1) {
-                //checking if this creating a sequence of 3
-                int directions[4][2]={{0,1},{1,0},{1,1},{1,-1}};
-                for(int d=0;d<4;d++) {
-                    int dr=directions[d][0];
-                    int dc=directions[d][1];
-                    int count=1;
+        }
 
-                    //negative direction
-                    for(int i=1;i<CONNECT_N;i++) {
-                        int rr=row-dr*i;
-                        int cc=c-dc*i;
-                        if(isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==myToken) {
-                            count++;
-                        }
-                        else break;
-                    }
-                    // positive direction
-                    for (int i=1;i<CONNECT_N;i++) {
-                        int rr=row+dr*i;
-                        int cc=c+dc*i;
-                        if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==myToken) {
-                            count++;
-                        }
-                        else break;
-                    }
-                    if (count==3) {
-                        return c;
-                    }
-                }
-            }
+        int row=makeMove(tempBoard, col, rows, cols, myToken);
+        if(row!=-1 && checkVictory(tempBoard,rows,cols,row,col,myToken)){
+            return col;
         }
     }
 
-    // Blocking the opponent’s sequence of three.(fourth priority)
-    int center = (cols-1)/2;
+    //2) Block opponent's winning move
+    for(int idx=0;idx<cols;idx++) {
+        int col=order[idx];
+        if(isColumnFull(board,col,rows,cols)) {
+            continue;
+        }
 
-    if (cols%2==0) {
-        // Even number of columns: check center, then prefer RIGHT then LEFT
-        for (int dist=0;dist<cols; dist++) {
-            /* right side first (except dist == 0) */
-            int rightCol=center+dist;
-            if (dist>0 && rightCol<cols && !isColumnFull(board,rightCol,rows,cols)) {
-                char tempBoard[ROWS][COLS];
-                for (int r=0;r<rows;r++) {
-                    for (int col=0; col<cols;col++) {
-                        tempBoard[r][col]=board[r][col];
-                    }
-                }
-                int row=makeMove(tempBoard,rightCol,rows,cols,oppToken);
-                if (row!=-1) {
-                    for (int d=0;d<4;d++) {
-                        int dr=directions[d][0];
-                        int dc=directions[d][1];
-                        int count=1;
-                        for (int i=1;i<CONNECT_N;i++) {
-                            int rr=row-dr*i;
-                            int cc=rightCol-dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        for (int i=1;i<CONNECT_N;i++) {
-                            int rr=row+dr*i;
-                            int cc=rightCol+dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        if (count==3) {
-                            return rightCol;
-                        }
-                    }
-                }
-            }
-
-            // then left side
-            int leftCol=center-dist;
-            if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
-                char tempBoard[ROWS][COLS];
-                for (int r=0;r<rows;r++) {
-                    for (int col=0;col<cols;col++) {
-                        tempBoard[r][col]=board[r][col];
-                    }
-                }
-                int row=makeMove(tempBoard,leftCol,rows,cols,oppToken);
-                if (row!=-1) {
-                    for (int d=0;d<4;d++) {
-                        int dr=directions[d][0];
-                        int dc=directions[d][1];
-                        int count=1;
-                        for (int i=1;i<CONNECT_N;i++) {
-                            int rr=row-dr*i;
-                            int cc=leftCol-dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        for (int i=1;i<CONNECT_N;i++) {
-                            int rr=row+dr*i;
-                            int cc=leftCol+dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        if (count==3) {
-                            return leftCol;
-                        }
-                    }
-                }
+        char tempBoard[ROWS][COLS];
+        for(int r=0; r<rows;r++){
+            for(int cc=0;cc<cols;cc++){
+                tempBoard[r][cc]=board[r][cc];
             }
         }
-    } else {
-        // Odd number of columns : LEFT then RIGHT
-        for (int dist=0; dist<cols; dist++) {
-            int leftCol=center-dist;
-            if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
-                char tempBoard[ROWS][COLS];
-                for (int r=0;r<rows;r++) {
-                    for (int col=0; col<cols;col++) {
-                        tempBoard[r][col]=board[r][col];
-                    }
-                }
-                int row = makeMove(tempBoard,leftCol,rows,cols,oppToken);
-                if (row!=-1){
-                    for (int d=0;d<4;d++) {
-                        int dr=directions[d][0];
-                        int dc=directions[d][1];
-                        int count=1;
-                        for (int i=1; i<CONNECT_N;i++) {
-                            int rr=row-dr*i;
-                            int cc=leftCol-dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        for (int i=1;i<CONNECT_N;i++) {
-                            int rr=row+dr*i;
-                            int cc=leftCol+dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        if (count==3) {
-                            return leftCol;
-                        }
-                    }
-                }
-            }
 
-            int rightCol=center+dist;
-            if (dist >0 && rightCol<cols && !isColumnFull(board,rightCol,rows,cols)) {
-                char tempBoard[ROWS][COLS];
-                for (int r=0;r<rows;r++) {
-                    for (int col=0; col<cols;col++) {
-                        tempBoard[r][col]=board[r][col];
-                    }
-                }
-                int row=makeMove(tempBoard,rightCol,rows,cols,oppToken);
-                if (row!=-1) {
-                    for (int d=0;d<4;d++) {
-                        int dr=directions[d][0];
-                        int dc=directions[d][1];
-                        int count=1;
-                        for (int i=1; i<CONNECT_N;i++) {
-                            int rr=row-dr*i;
-                            int cc=rightCol-dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        for (int i=1; i<CONNECT_N;i++) {
-                            int rr=row+dr*i;
-                            int cc=rightCol+dc*i;
-                            if (isInBounds(rr,cc,rows,cols) && tempBoard[rr][cc]==oppToken) {
-                                count++;
-                            } else break;
-                        }
-                        if (count==3) {
-                            return rightCol;
-                        }
-                    }
-                }
-            }
+        int row=makeMove(tempBoard,col,rows,cols,oppToken);
+        if(row!=-1 && checkVictory(tempBoard,rows,cols,row,col,oppToken)){
+            return col;
         }
     }
 
-    // 5) Fallback: choosing column by center preference
-    center=(cols-1)/2;
-    if (!isColumnFull(board, center, rows, cols)) {
-        return center;
-    }
+    //3) Create a sequence of three for myToken
+    for(int idx=0;idx<cols;idx++){
+        int col=order[idx];
+        if (isColumnFull(board,col,rows,cols)){
+            continue;
+        }
 
-    if (cols%2==0) {
-        // Even , prefer RIGHT then LEFT around center
-        for (int dist=1;dist<cols;dist++) {
-            int rightCol=center+dist;
-            if (rightCol<cols && !isColumnFull(board,rightCol,rows,cols)) {
-                return rightCol;
-            }
-            int leftCol=center-dist;
-            if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
-                return leftCol;
+        char tempBoard[ROWS][COLS];
+        for(int r=0;r<rows;r++){
+            for(int cc=0;cc<cols;cc++){
+                tempBoard[r][cc]=board[r][cc];
             }
         }
-    } else {
-        // Odd , original LEFT then RIGHT
-        for (int dist=1;dist<cols;dist++) {
-            int leftCol=center-dist;
-            if (leftCol>=0 && !isColumnFull(board,leftCol,rows,cols)) {
-                return leftCol;
+
+        int row=makeMove(tempBoard,col,rows,cols,myToken);
+        if(row==-1){
+            continue;
+        }
+
+        int makesThree = 0;
+        for(int d=0;d<4 && !makesThree;d++){
+            int dr=directions[d][0];
+            int dc=directions[d][1];
+            int count=1;
+
+            // negative direction
+            for (int i=1;i<CONNECT_N;i++){
+                int rr=row-dr*i;
+                int cc2=col-dc*i;
+                if (isInBounds(rr,cc2,rows,cols) && tempBoard[rr][cc2]==myToken){
+                    count++;
+                } else{
+                    break;
+                }
             }
-            int rightCol=center+dist;
-            if (rightCol<cols && !isColumnFull(board,rightCol,rows,cols)) {
-                return rightCol;
+            // positive direction
+            for(int i=1;i<CONNECT_N;i++){
+                int rr=row+dr*i;
+                int cc2=col+dc*i;
+                if (isInBounds(rr,cc2,rows,cols) && tempBoard[rr][cc2]==myToken){
+                    count++;
+                } else{
+                    break;
+                }
             }
+
+            if(count==3){   // exactly 3 in a row
+                makesThree=1;
+            }
+        }
+
+        if(makesThree){
+            return col;   // first column in teacher order that creates 3
         }
     }
 
-    // it Should not really get here if there is any legal move
+    //4) Block opponent's sequence of three
+    for(int idx=0;idx<cols;idx++){
+        int col=order[idx];
+        if(isColumnFull(board,col,rows,cols)){
+            continue;
+        }
+
+        char tempBoard[ROWS][COLS];
+        for(int r=0;r<rows;r++){
+            for(int cc=0;cc<cols;cc++){
+                tempBoard[r][cc]=board[r][cc];
+            }
+        }
+
+        int row=makeMove(tempBoard,col,rows,cols,oppToken);
+        if (row==-1) {
+            continue;
+        }
+
+        int blocksThree=0;
+        for(int d=0;d<4 && !blocksThree;d++){
+            int dr=directions[d][0];
+            int dc=directions[d][1];
+            int count=1;
+
+            // negative direction
+            for(int i=1;i<CONNECT_N;i++){
+                int rr=row-dr*i;
+                int cc2=col-dc*i;
+                if(isInBounds(rr,cc2,rows,cols) && tempBoard[rr][cc2]==oppToken){
+                    count++;
+                } else{
+                    break;
+                }
+            }
+            // positive direction
+            for(int i=1; i<CONNECT_N;i++){
+                int rr=row+dr*i;
+                int cc2=col+dc*i;
+                if(isInBounds(rr,cc2,rows,cols) && tempBoard[rr][cc2]==oppToken){
+                    count++;
+                } else{
+                    break;
+                }
+            }
+
+            if(count==3){
+                blocksThree=1;
+            }
+        }
+
+        if(blocksThree){
+            return col;
+        }
+    }
+
+    //5) Arbitrary ordering rule: first legal column in order[]
+    for(int idx=0;idx<cols;idx++){
+        int col = order[idx];
+        if(!isColumnFull(board,col,rows,cols)) {
+            return col;
+        }
+    }
+
+    // Board should be full if we reach here
     return 0;
 }
 
